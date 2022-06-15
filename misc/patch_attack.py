@@ -112,10 +112,13 @@ error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
 
-for data,labels in tqdm(val_loader):
-    
+
+for count,(data,labels) in tqdm(enumerate(val_loader)):
+    if count == 20:
+        break
     data,labels=data.to(device),labels.to(device)
     data_adv,patch_loc = attacker.perturb(data, labels)
+    print(labels.size())
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
