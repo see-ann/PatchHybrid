@@ -113,7 +113,7 @@ accuracy_list=[]
 patch_loc_list=[]
 
 
-for count,(data,labels) in tqdm(enumerate(val_loader)):
+for count,(data,labels) in enumerate(val_loader):
     if count == 20:
         break
     data,labels=data.to(device),labels.to(device)
