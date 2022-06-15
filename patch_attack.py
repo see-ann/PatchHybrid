@@ -112,13 +112,14 @@ error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
 
-
-for count,(data,labels) in enumerate(val_loader):
-    if count == 20:
+counter = 0
+for data,labels in tqdm(val_loader):
+    counter+=1
+    if counter == 10:
         break
+    
     data,labels=data.to(device),labels.to(device)
     data_adv,patch_loc = attacker.perturb(data, labels)
-    print(labels.size())
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
@@ -140,4 +141,3 @@ joblib.dump(adv_list,os.path.join(DUMP_DIR,'patch_adv_list_{}.z'.format(args.pat
 joblib.dump(patch_loc_list,os.path.join(DUMP_DIR,'patch_loc_list_{}.z'.format(args.patch_size)))
 print("Attack success rate:",np.sum(error_list)/len(val_dataset))
 print("Clean accuracy:",np.sum(accuracy_list)/len(val_dataset))
-    
