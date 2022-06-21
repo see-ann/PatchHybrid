@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from  torchvision import datasets, transforms
 
+from torchvision.utils import save_image
+
 import nets.bagnet
 import nets.resnet
 from utils.defense_utils import *
@@ -112,14 +114,16 @@ error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
 
+print('hi')
 counter = 0
 for data,labels in tqdm(val_loader):
     counter+=1
-    if counter == 10:
+    if counter == 3:
         break
     
     data,labels=data.to(device),labels.to(device)
     data_adv,patch_loc = attacker.perturb(data, labels)
+    save_image(data_adv, 'img1.png')
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
