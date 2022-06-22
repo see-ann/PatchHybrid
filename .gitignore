@@ -1,5 +1,2 @@
 # ignore checkpoints
 checkpoints/*
-
-# ignore .pth files in PatchGuard_download folder
-PatchGuard_download/*
