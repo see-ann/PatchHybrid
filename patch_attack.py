@@ -114,16 +114,13 @@ error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
 
-print('hi')
-counter = 0
-for data,labels in tqdm(val_loader):
-    counter+=1
-    if counter == 3:
+for counter, (data,labels) in enumerate(tqdm(val_loader)):
+    if counter == 3: # stop at 3 for testing denormalization/shuffling
         break
     
     data,labels=data.to(device),labels.to(device)
     data_adv,patch_loc = attacker.perturb(data, labels)
-    save_image(data_adv, 'img1.png')
+    save_image(data_adv, 'img%d.png'%(counter))
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
