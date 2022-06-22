@@ -116,12 +116,19 @@ accuracy_list=[]
 patch_loc_list=[]
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
-    if counter == 3: # stop at 3 for testing denormalization/shuffling
+    if counter == 500: # stop at 500 for testing denormalization/shuffling
         break
     
     data,labels=data.to(device),labels.to(device)
     data_adv,patch_loc = attacker.perturb(data, labels)
-    save_image(data_adv, 'img%d.png'%(counter))
+    if DATASET in ['imagenette','imagenet']:
+        mean_vec = [-0.485, -0.456, -0.406]
+        std_vec =  [1/0.229, 1/0.224, 1/0.225]
+        ds_inverse_transforms = transforms.Normalize(mean_vec,std_vec)
+        
+    data_adv_copy = ds_inverse_transforms(data_adv)
+    save_image(data_adv_copy, './test_images/img%d.png'%(counter))
+
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
