@@ -65,7 +65,8 @@ elif DATASET == 'cifar':
     val_dataset = datasets.CIFAR10(root=DATA_DIR, train=False, download=True, transform=ds_transforms)
     class_names = val_dataset.classes
 
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=8,shuffle=False)
+# set batch_size = 1 for single images, shuffle=True for a variety of classes
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=True)
 
 #build and initialize model
 device = 'cuda' #if torch.cuda.is_available() else 'cpu'
