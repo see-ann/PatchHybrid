@@ -120,7 +120,7 @@ clean_corr=0
 counter = 0
 for data,labels in tqdm(val_loader):
 
-    if counter == 3:
+    if counter == 5:
         break
    
     counter += 1
@@ -151,15 +151,24 @@ for data,labels in tqdm(val_loader):
     acc_clean = np.sum(np.argmax(np.mean(output_clean,axis=(1,2)),axis=1) == labels)
     accuracy_list.append(acc_clean)
 
+output_shape = output_clean.shape
+logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
 
-logit_mgtds = np.linalg.norm(output_clean.reshape((676, 10)), axis=1)
-
-fig, ax = plt.subplots(1, 1,)
+fig, ax = plt.subplots(1, 1)
 ax.hist(logit_mgtds, bins = 40)
 ax.set_xlabel("Logit Magnitude")
 ax.set_ylabel("Count")
 ax.set_title("Distribution of Logit Magnitudes")
-plt.savefig("logits_distribution")
+
+
+if 'bagnet17' in args.model:
+    plt.savefig("logits_dist_bn17")
+
+elif 'bagnet33' in args.model:
+    plt.savefig("logits_dist_bn33")
+
+elif 'bagnet9' in args.model:
+    plt.savefig("logits_dist_bn9")
 
 
 # cases,cnt=np.unique(result_list,return_counts=True)
