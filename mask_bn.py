@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import nets.bagnet
 import nets.resnet
 from utils.defense_utils import *
+from scipy.stats import iqr
 
 import os 
 import joblib
@@ -18,6 +19,8 @@ import numpy as np
 from scipy.special import softmax
 from math import ceil
 import PIL
+from scipy import stats
+
 
 parser = argparse.ArgumentParser()
 
@@ -117,22 +120,29 @@ accuracy_list=[]
 result_list=[]
 clean_corr=0
 
+skewness_list = []
+
 counter = 0
 for data,labels in tqdm(val_loader):
-
-    if counter == 5:
-        break
    
     counter += 1
+
+    if counter == 150:
+        break
     
     data=data.to(device)
     labels = labels.numpy()
+
+    print("Labels: ")
+    print(labels)
+    print(len(labels))
     output_clean = model(data).detach().cpu().numpy() # logits
     #output_clean = softmax(output_clean,axis=-1) # confidence
     #output_clean = (output_clean > 0.2).astype(float) # predictions with confidence threshold
 
     #note: the provable analysis of robust masking is cpu-intensive and can take some time to finish
     #you can dump the local feature and do the provable analysis with another script so that GPU mempry is not always occupied  
+    
     for i in range(len(labels)):
         if args.m:#robust masking
             local_feature = output_clean[i]
@@ -151,8 +161,23 @@ for data,labels in tqdm(val_loader):
     acc_clean = np.sum(np.argmax(np.mean(output_clean,axis=(1,2)),axis=1) == labels)
     accuracy_list.append(acc_clean)
 
-output_shape = output_clean.shape
-logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
+    output_shape = output_clean.shape
+    logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
+
+
+
+    skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
+    
+
+    skewness_list.append(skewness)
+
+
+
+
+
+print("skewness_list: ")
+print(skewness_list)
+print(np.mean(skewness_list))
 
 fig, ax = plt.subplots(1, 1)
 ax.hist(logit_mgtds, bins = 40)
@@ -161,15 +186,14 @@ ax.set_ylabel("Count")
 ax.set_title("Distribution of Logit Magnitudes")
 
 
-if 'bagnet17' in args.model:
-    plt.savefig("logits_dist_bn17")
+# if 'bagnet17' in args.model:
+#     plt.savefig("logits_dist_bn17")
 
-elif 'bagnet33' in args.model:
-    plt.savefig("logits_dist_bn33")
+# elif 'bagnet33' in args.model:
+#     plt.savefig("logits_dist_bn33")
 
-elif 'bagnet9' in args.model:
-    plt.savefig("logits_dist_bn9")
-
+# elif 'bagnet9' in args.model:
+#     plt.savefig("logits_dist_bn9")
 
 # cases,cnt=np.unique(result_list,return_counts=True)
 # print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
