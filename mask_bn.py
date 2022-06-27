@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from  torchvision import datasets, transforms
+import matplotlib.pyplot as plt
 
 import nets.bagnet
 import nets.resnet
@@ -61,7 +62,7 @@ def get_dataset(ds,data_dir):
 val_dataset_,class_names = get_dataset(DATASET,DATA_DIR)
 skips = list(range(0, len(val_dataset_), args.skip))
 val_dataset = torch.utils.data.Subset(val_dataset_, skips)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=8,shuffle=False)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=False)
 
 #build and initialize model
 device = 'cuda' #if torch.cuda.is_available() else 'cpu'
@@ -116,7 +117,13 @@ accuracy_list=[]
 result_list=[]
 clean_corr=0
 
+counter = 0
 for data,labels in tqdm(val_loader):
+
+    if counter == 3:
+        break
+   
+    counter += 1
     
     data=data.to(device)
     labels = labels.numpy()
@@ -145,10 +152,24 @@ for data,labels in tqdm(val_loader):
     accuracy_list.append(acc_clean)
 
 
-cases,cnt=np.unique(result_list,return_counts=True)
-print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
-print("Clean accuracy with defense:",clean_corr/len(result_list))
-print("Clean accuracy without defense:",np.sum(accuracy_list)/len(val_dataset))
-print("------------------------------")
-print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
-print("Provable analysis breakdown",cnt/len(result_list))
+logit_mgtds = np.linalg.norm(output_clean.reshape((676, 10)), axis=1)
+
+fig, ax = plt.subplots(1, 1,)
+ax.hist(logit_mgtds, bins = 40)
+ax.set_xlabel("Logit Magnitude")
+ax.set_ylabel("Count")
+ax.set_title("Distribution of Logit Magnitudes")
+plt.savefig("logits_distribution")
+
+
+# cases,cnt=np.unique(result_list,return_counts=True)
+# print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
+# print("Clean accuracy with defense:",clean_corr/len(result_list))
+# print("Clean accuracy without defense:",np.sum(accuracy_list)/len(val_dataset))
+# print("------------------------------")
+# print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
+# print("Provable analysis breakdown",cnt/len(result_list))
+# print("------------------------------")
+print(output_clean.shape)
+print(logit_mgtds.shape)
+
