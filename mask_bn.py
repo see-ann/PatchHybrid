@@ -87,14 +87,14 @@ elif 'bagnet9' in args.model:
     rf_size=9
 
 
-if DATASET == 'imagenette':
+if DATASET == 'imagenette' or DATASET == 'imagenette_patch':
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, len(class_names))
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(os.path.join(MODEL_DIR,args.model+'_nette.pth'))
     model.load_state_dict(checkpoint['model_state_dict']) 
     args.patch_size = args.patch_size if args.patch_size>0 else 32     
-elif  DATASET == 'imagenet':
+elif  DATASET == 'imagenet' :
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(os.path.join(MODEL_DIR,args.model+'_net.pth'))
     model.load_state_dict(checkpoint['state_dict'])
@@ -129,7 +129,7 @@ for data,labels in tqdm(val_loader):
    
     counter += 1
 
-    if counter == 10:
+    if counter == 2:
         break
     
     data=data.to(device)
@@ -160,10 +160,13 @@ for data,labels in tqdm(val_loader):
             result_list.append(result)
             clean_pred = clipping_defense(output_clean[i])
             clean_corr += clean_pred == labels[i]   
+    print(f"clean pred: {clean_pred}")
+    print(f"result: {result}")
     acc_clean = np.sum(np.argmax(np.mean(output_clean,axis=(1,2)),axis=1) == labels)
     accuracy_list.append(acc_clean)
 
     output_shape = output_clean.shape
+    print(output_shape)
     logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
 
 
@@ -215,6 +218,11 @@ for i in range(logits_2d.shape[1]):
 
 
 
+fig, ax = plt.subplots(1, 1)
+ax.hist(logit_mgtds, bins = 40)
+ax.set_xlabel("Logit Magnitude")
+ax.set_ylabel("Count")
+ax.set_title("Distribution of Local Logit Magnitudes")
 
 if 'bagnet17' in args.model:
     plt.savefig("logits_dist_bn17")
