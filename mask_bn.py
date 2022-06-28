@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from  torchvision import datasets, transforms
 import matplotlib.pyplot as plt
+from torchvision.utils import save_image
 
 import nets.bagnet
 import nets.resnet
@@ -26,7 +27,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("--model_dir",default='checkpoints',type=str,help="path to checkpoints")
 parser.add_argument('--data_dir', default='data', type=str,help="path to data")
-parser.add_argument('--dataset', default='imagenette', choices=('imagenette','imagenet','cifar'),type=str,help="dataset")
+parser.add_argument('--dataset', default='imagenette', choices=('imagenette', 'imagenette_patch', 'imagenet','cifar'),type=str,help="dataset")
 parser.add_argument("--model",default='bagnet17',type=str,help="model name")
 parser.add_argument("--clip",default=-1,type=int,help="clipping value; do clipping when this argument is set to positive")
 parser.add_argument("--aggr",default='none',type=str,help="aggregation methods. set to none for local feature")
@@ -42,7 +43,7 @@ MODEL_DIR=os.path.join('.',args.model_dir)
 DATA_DIR=os.path.join(args.data_dir,args.dataset)
 DATASET = args.dataset
 def get_dataset(ds,data_dir):
-    if ds in ['imagenette','imagenet']:
+    if ds in ['imagenette','imagenet', 'imagenette_patch']:
         ds_dir=os.path.join(data_dir,'val')
         ds_transforms = transforms.Compose([
                 transforms.Resize(256),
@@ -124,6 +125,7 @@ skewness_list = []
 
 counter = 0
 for data,labels in tqdm(val_loader):
+
    
     counter += 1
 
@@ -181,18 +183,18 @@ for data,labels in tqdm(val_loader):
 
 
 
-    #skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
-    #std = np.std(logit_mgtds)
+#     skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
+#     std = np.std(logit_mgtds)
 
-    #skewness_list.append(skewness)
-    #std_list.append(std)
+#     skewness_list.append(skewness)
+#     std_list.append(std)
 
 
 
-#print("skewness_list: ")
-#print(skewness_list)
-#print(np.mean(skewness_list))
-#print(np.mean(std_list))
+# print("skewness_list: ")
+# print(skewness_list)
+# print(np.mean(skewness_list))
+# print(np.mean(std_list))
 
 for i in range(logits_2d.shape[1]):
     std = np.round(np.std(logits_2d[:, i]), decimals=2)
@@ -214,14 +216,14 @@ for i in range(logits_2d.shape[1]):
 
 
 
-# if 'bagnet17' in args.model:
-#     plt.savefig("logits_dist_bn17")
+if 'bagnet17' in args.model:
+    plt.savefig("logits_dist_bn17")
 
-# elif 'bagnet33' in args.model:
-#     plt.savefig("logits_dist_bn33")
+elif 'bagnet33' in args.model:
+    plt.savefig("logits_dist_bn33")
 
-# elif 'bagnet9' in args.model:
-#     plt.savefig("logits_dist_bn9")
+elif 'bagnet9' in args.model:
+    plt.savefig("logits_dist_bn9")
 
 # cases,cnt=np.unique(result_list,return_counts=True)
 # print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
