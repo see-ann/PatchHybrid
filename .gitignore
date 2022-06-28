@@ -1,2 +1,5 @@
 # ignore checkpoints
 checkpoints/*
+
+# ignore data dir
+data/*
