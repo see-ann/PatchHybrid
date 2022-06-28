@@ -116,18 +116,29 @@ accuracy_list=[]
 patch_loc_list=[]
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
-    if counter == 500: # stop at 500 for testing denormalization/shuffling
+    if counter == 50: # stop at 500 for testing denormalization/shuffling
         break
     
     data,labels=data.to(device),labels.to(device)
-    data_adv,patch_loc = attacker.perturb(data, labels)
+    #data_adv,patch_loc = attacker.perturb(data, labels)
+
     if DATASET in ['imagenette','imagenet']:
-        mean_vec = [-0.485, -0.456, -0.406]
-        std_vec =  [1/0.229, 1/0.224, 1/0.225]
+        neg_mean_vec = [-0.485, -0.456, -0.406]
+        inv_std_vec =  [1/0.229, 1/0.224, 1/0.225]
         ds_inverse_transforms = transforms.Normalize(mean_vec,std_vec)
+        ds_inverse_transforms = transforms.Compose([ transforms.Normalize(mean = [ 0., 0., 0. ],
+                                                     std = inv_std_vec),
+                                transforms.Normalize(mean = neg_mean_vec,
+                                                     std = [ 1., 1., 1. ]),
+                               ])
         
-    data_adv_copy = ds_inverse_transforms(data_adv)
-    save_image(data_adv_copy, './test_images/img%d.png'%(counter))
+    # data_adv_copy = ds_inverse_transforms(data_adv)
+    # save_image(data_adv_copy, f"./data/imagenette_patch/val/{labels[0]}/img{counter}.png")
+    data_copy = ds_inverse_transforms(data)
+    print(data.shape)
+    print(torch.max(data),torch.min(data))
+    print(torch.max(data_copy),torch.min(data_copy))
+    save_image(data_copy, f"./data/imagenette_patch/val/{labels[0]}/test_img{counter}.png")
 
 
     output_adv = model(data_adv)
