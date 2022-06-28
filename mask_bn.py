@@ -127,7 +127,7 @@ for data,labels in tqdm(val_loader):
    
     counter += 1
 
-    if counter == 150:
+    if counter == 10:
         break
     
     data=data.to(device)
@@ -172,18 +172,46 @@ for data,labels in tqdm(val_loader):
     skewness_list.append(skewness)
 
 
+    output_shape = output_clean.shape
+    print(f"output_clean shape: {output_shape}")
+    logits_2d = output_clean.reshape(output_shape[1]*output_shape[2], 10)
+    logit_mgtds = np.linalg.norm(logits_2d, axis=1)
+    print(f"logits_2d shape: {logits_2d.shape}")
+    print(f"logits_mgtds shape: {logit_mgtds.shape}")
 
 
 
-print("skewness_list: ")
-print(skewness_list)
-print(np.mean(skewness_list))
+    #skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
+    #std = np.std(logit_mgtds)
 
-fig, ax = plt.subplots(1, 1)
-ax.hist(logit_mgtds, bins = 40)
-ax.set_xlabel("Logit Magnitude")
-ax.set_ylabel("Count")
-ax.set_title("Distribution of Logit Magnitudes")
+    #skewness_list.append(skewness)
+    #std_list.append(std)
+
+
+
+#print("skewness_list: ")
+#print(skewness_list)
+#print(np.mean(skewness_list))
+#print(np.mean(std_list))
+
+for i in range(logits_2d.shape[1]):
+    std = np.round(np.std(logits_2d[:, i]), decimals=2)
+    print(f"std of class {i} evidence: {std}")
+    fig, ax = plt.subplots(1, 1)
+    ax.hist(logits_2d[:, i], bins = 40)
+    ax.set_xlabel(f"Class {i} Evidence")
+    ax.set_ylabel("Count")
+    ax.set_title(f"Distribution of Local Class {i} Evidence")
+    if 'bagnet17' in args.model:
+        plt.savefig(f"class{i}_dist_bn17")
+
+    elif 'bagnet33' in args.model:
+        plt.savefig(f"class{i}_dist_bn33")
+
+    elif'bagnet9' in args.model:
+        plt.savefig(f"class{i}_dist_bn17")
+
+
 
 
 # if 'bagnet17' in args.model:
