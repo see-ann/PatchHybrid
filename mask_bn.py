@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("--model_dir",default='checkpoints',type=str,help="path to checkpoints")
 parser.add_argument('--data_dir', default='data', type=str,help="path to data")
-parser.add_argument('--dataset', default='imagenette', choices=('imagenette', 'imagenette_patch', 'imagenet','cifar'),type=str,help="dataset")
+parser.add_argument('--dataset', default='imagenette_patch', choices=('imagenette', 'imagenette_patch', 'imagenet','cifar'),type=str,help="dataset")
 parser.add_argument("--model",default='bagnet17',type=str,help="model name")
 parser.add_argument("--clip",default=-1,type=int,help="clipping value; do clipping when this argument is set to positive")
 parser.add_argument("--aggr",default='none',type=str,help="aggregation methods. set to none for local feature")
@@ -48,7 +48,10 @@ def get_dataset(ds,data_dir):
     # CenterCrop, and ToTensor functions, so only need to normalize here.
     if ds == 'imagenette_patch':
        ds_dir=os.path.join(data_dir,'val')
-       ds_transforms = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+       ds_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
        dataset_ = datasets.ImageFolder(ds_dir,ds_transforms)
        class_names = dataset_.classes
 
@@ -144,9 +147,9 @@ for data,labels in tqdm(val_loader):
     data=data.to(device)
     labels = labels.numpy()
 
-    print("Labels: ")
-    print(labels)
-    print(len(labels))
+    print(f"Correct Label: {labels[0]}")
+    #print(labels)
+    # print(len(labels))
     output_clean = model(data).detach().cpu().numpy() # logits
     #output_clean = softmax(output_clean,axis=-1) # confidence
     #output_clean = (output_clean > 0.2).astype(float) # predictions with confidence threshold
@@ -209,8 +212,9 @@ for data,labels in tqdm(val_loader):
 # print(np.mean(std_list))
 
 for i in range(logits_2d.shape[1]):
-    std = np.round(np.std(logits_2d[:, i]), decimals=2)
-    print(f"std of class {i} evidence: {std}")
+    sum = np.sum(logits_2d[:, i])
+    sum = np.floor(sum)
+    print(f"sum of class {i} evidence: {sum}")
     fig, ax = plt.subplots(1, 1)
     ax.hist(logits_2d[:, i], bins = 40)
     ax.set_xlabel(f"Class {i} Evidence")
