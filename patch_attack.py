@@ -115,30 +115,42 @@ error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
 
+ 
+# Note: the saved adversarial images have already gone through the
+# Resize, CenterCrop, and ToTensor transformations. So when we feed these
+# images to mask_bn, we should be sure to not perform these again.
+ 
+# To address this, there is a separate case for preprocessing when
+# --dataset == 'imagenette_patch' in mask_bn.py
+ 
+# For filepaths of saved images
+class_count = np.zeros(10, dtype = int)
+
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
     if counter == 50: # stop at 500 for testing denormalization/shuffling
         break
     
     data,labels=data.to(device),labels.to(device)
-    #data_adv,patch_loc = attacker.perturb(data, labels)
+    
+    # make the adversarial image
+    data_adv,patch_loc = attacker.perturb(data, labels)
 
-    if DATASET in ['imagenette','imagenet']:
-        neg_mean_vec = [-0.485, -0.456, -0.406]
-        inv_std_vec =  [1/0.229, 1/0.224, 1/0.225]
-        ds_inverse_transforms = transforms.Normalize(mean_vec,std_vec)
-        ds_inverse_transforms = transforms.Compose([ transforms.Normalize(mean = [ 0., 0., 0. ],
-                                                     std = inv_std_vec),
-                                transforms.Normalize(mean = neg_mean_vec,
-                                                     std = [ 1., 1., 1. ]),
-                               ])
-        
-    # data_adv_copy = ds_inverse_transforms(data_adv)
-    # save_image(data_adv_copy, f"./data/imagenette_patch/val/{labels[0]}/img{counter}.png")
-    data_copy = ds_inverse_transforms(data)
-    print(data.shape)
-    print(torch.max(data),torch.min(data))
-    print(torch.max(data_copy),torch.min(data_copy))
-    save_image(data_copy, f"./data/imagenette_patch/val/{labels[0]}/test_img{counter}.png")
+    # finally correct (i think) attempt at inverse tranform
+    # needed to apply mean and std transforms separately
+    ds_inverse_transforms = transforms.Compose([
+       transforms.Normalize(mean = [ 0., 0., 0. ],
+                            std = [1/x for x in std_vec]),
+       transforms.Normalize(mean = [-x for x in mean_vec],
+                           std = [ 1., 1., 1. ]),
+       ])
+    data_adv_copy = ds_inverse_transforms(data_adv)
+
+    # Keep track of how many images in this class we've saved
+    label = int(labels[0])
+
+    save_image(data_adv_copy,
+       f"./data/imagenette_patch/val/{label}/img{class_count[label]}.png")
+    class_count[label] += 1
 
 
     output_adv = model(data_adv)
