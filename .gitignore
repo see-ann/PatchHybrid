@@ -1,5 +1,6 @@
 # ignore checkpoints
 checkpoints/*
 
-# ignore data dir
-data/*
+# ignore non-patch datasets in data dir
+data/cifar/*
+data/imagenette/*
