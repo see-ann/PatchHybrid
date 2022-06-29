@@ -43,7 +43,16 @@ MODEL_DIR=os.path.join('.',args.model_dir)
 DATA_DIR=os.path.join(args.data_dir,args.dataset)
 DATASET = args.dataset
 def get_dataset(ds,data_dir):
-    if ds in ['imagenette','imagenet', 'imagenette_patch']:
+    
+    # adversarial images that we created already underwent the Resize
+    # CenterCrop, and ToTensor functions, so only need to normalize here.
+    if ds == 'imagenette_patch':
+       ds_dir=os.path.join(data_dir,'val')
+       ds_transforms = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+       dataset_ = datasets.ImageFolder(ds_dir,ds_transforms)
+       class_names = dataset_.classes
+
+    if ds in ['imagenette','imagenet']:
         ds_dir=os.path.join(data_dir,'val')
         ds_transforms = transforms.Compose([
                 transforms.Resize(256),
