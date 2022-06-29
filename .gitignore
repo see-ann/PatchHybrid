@@ -4,3 +4,7 @@ checkpoints/*
 # ignore non-patch datasets in data dir
 data/cifar/*
 data/imagenette/*
+
+# ignore __pycache__, dump
+__pycache__/*
+dump/*
