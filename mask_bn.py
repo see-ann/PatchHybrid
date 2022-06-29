@@ -45,7 +45,7 @@ DATASET = args.dataset
 def get_dataset(ds,data_dir):
     
     # adversarial images that we created already underwent the Resize
-    # CenterCrop, and ToTensor functions, so only need to normalize here.
+    # and CenterCrop functions so only need to normalize here.
     if ds == 'imagenette_patch':
        ds_dir=os.path.join(data_dir,'val')
        ds_transforms = transforms.Compose([
