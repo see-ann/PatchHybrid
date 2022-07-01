@@ -135,6 +135,16 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
     # make the adversarial image
     data_adv,patch_loc = attacker.perturb(data, labels)
 
+    sample_fname, _ = val_loader.dataset.samples[counter]
+    sample_fname_list = sample_fname.split('/')
+
+    preceding_file_name = sample_fname_list[-2]
+    file_name = sample_fname_list[-1]
+
+    print(sample_fname)
+    print(preceding_file_name)
+    print(file_name)
+
     # finally correct (i think) attempt at inverse tranform
     # needed to apply mean and std transforms separately
     ds_inverse_transforms = transforms.Compose([
@@ -147,9 +157,9 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
 
     # Keep track of how many images in this class we've saved
     label = int(labels[0])
-
+    
     save_image(data_adv_copy,
-       f"./data/imagenette_patch/val/{label}/img{class_count[label]}.png")
+       f"./data/imagenette_patch/val/{label}/{file_name}")
     class_count[label] += 1
 
 
