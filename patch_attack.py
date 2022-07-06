@@ -128,10 +128,7 @@ patch_loc_list=[]
 class_count = np.zeros(10, dtype = int)
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
-    
-    if counter == 500: 
-        break
-    
+
     data,labels=data.to(device),labels.to(device)
     
     # clean image
