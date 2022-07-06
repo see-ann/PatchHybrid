@@ -122,7 +122,7 @@ elif  DATASET == 'cifar':
 
 rf_stride=8
 window_size = ceil((args.patch_size + rf_size -1) / rf_stride)
-print("window_size",window_size)
+print(f"window_size: {window_size}")
 
     
 model = model.to(device)
@@ -138,17 +138,20 @@ skewness_list = []
 counter = 0
 for data,labels in tqdm(val_loader):
     
+    if counter == 1 :
+        break
+
     sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
 
     sample_fname_list = sample_fname.split('/')
 
-    preceding_file_name = sample_fname_list[-2]
+    class_folder = sample_fname_list[-2]
     file_name = sample_fname_list[-1]
 
 
-    print(sample_fname)
-    print(preceding_file_name)
-    print(file_name)
+    print(f"full file name: {sample_fname}")
+    print(f"class folder: {class_folder}")
+    print(f"file name: {file_name}")
    
 
     if DATASET == 'imagenette':
@@ -158,7 +161,7 @@ for data,labels in tqdm(val_loader):
     data=data.to(device)
     labels = labels.numpy()
 
-    print(f"Correct Label: {labels[0]}")
+    print(f"correct label: {labels[0]}")
     #print(labels)
     # print(len(labels))
     output_clean = model(data).detach().cpu().numpy() # logits
@@ -183,13 +186,12 @@ for data,labels in tqdm(val_loader):
             result_list.append(result)
             clean_pred = clipping_defense(output_clean[i])
             clean_corr += clean_pred == labels[i]   
-    print(f"clean pred: {clean_pred}")
+    print(f"clean prediction: {clean_pred}")
     print(f"result: {result}")
     acc_clean = np.sum(np.argmax(np.mean(output_clean,axis=(1,2)),axis=1) == labels)
     accuracy_list.append(acc_clean)
 
     output_shape = output_clean.shape
-    print(output_shape)
     logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
 
 
@@ -206,6 +208,7 @@ for data,labels in tqdm(val_loader):
     logit_mgtds = np.linalg.norm(logits_2d, axis=1)
     print(f"logits_2d shape: {logits_2d.shape}")
     print(f"logits_mgtds shape: {logit_mgtds.shape}")
+    counter += 1
 
 
 
@@ -233,24 +236,24 @@ for i in range(logits_2d.shape[1]):
     ax.set_title(f"Distribution of Local Class {i} Evidence")
     if 'bagnet17' in args.model:
         if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn17/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./adversial_plots/bn17/classes/class{i}_dist_{class_folder}_{file_name}")
         elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn17/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./clean_plots/bn17/classes/class{i}_dist_{class_folder}_{file_name}")
 
 
     elif 'bagnet33' in args.model:
         if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn33/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./adversial_plots/bn33/classes/class{i}_dist_{class_folder}_{file_name}")
         
         elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn33/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./clean_plots/bn33/classes/class{i}_dist_{class_folder}_{file_name}")
 
     elif'bagnet9' in args.model:
         if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn9/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./adversial_plots/bn9/classes/class{i}_dist_{class_folder}_{file_name}")
         
         elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn9/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+            plt.savefig(f"./clean_plots/bn9/classes/class{i}_dist_{class_folder}_{file_name}")
 
 
 
@@ -262,23 +265,23 @@ ax.set_title("Distribution of Local Logit Magnitudes")
 
 if 'bagnet17' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn17/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn17/logits_dist_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn17/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn17/logits_dist_{class_folder}_{file_name}")
 
 
 elif 'bagnet33' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn33/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn33/logits_dist_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn33/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn33/logits_dist_{class_folder}_{file_name}")
 
 
 elif 'bagnet9' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn9/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn9/logits_dist_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn9/logits_dist_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn9/logits_dist_{class_folder}_{file_name}")
 
 
 fig, ax = plt.subplots(1, 1)
@@ -288,24 +291,24 @@ ax.set_title("Boxplot of Local Logit Magnitudes (Single Image)")
 
 if 'bagnet17' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn17/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn17/logits_boxplot_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn17/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn17/logits_boxplot_{class_folder}_{file_name}")
 
 
 
 elif 'bagnet33' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn33/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn33/logits_boxplot_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn33/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn33/logits_boxplot_{class_folder}_{file_name}")
 
 
 elif 'bagnet9' in args.model:
     if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn9/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./adversial_plots/bn9/logits_boxplot_{class_folder}_{file_name}")
     elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn9/logits_boxplot_{preceding_file_name}_{file_name}")
+        plt.savefig(f"./clean_plots/bn9/logits_boxplot_{class_folder}_{file_name}")
 
 
 
@@ -319,6 +322,6 @@ elif 'bagnet9' in args.model:
 # print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
 # print("Provable analysis breakdown",cnt/len(result_list))
 # print("------------------------------")
-print(output_clean.shape)
-print(logit_mgtds.shape)
+#print(output_clean.shape)
+#print(logit_mgtds.shape)
 
