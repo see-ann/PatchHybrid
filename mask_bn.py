@@ -286,7 +286,7 @@ elif 'bagnet9' in args.model:
 
 fig, ax = plt.subplots(1, 1)
 ax.boxplot(logit_mgtds)
-ax.set_xlabel("Logit Magnitude")
+ax.set_ylabel("Logit Magnitude")
 ax.set_title("Boxplot of Local Logit Magnitudes (Single Image)")
 
 if 'bagnet17' in args.model:
