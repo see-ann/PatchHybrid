@@ -127,10 +127,13 @@ patch_loc_list=[]
 class_count = np.zeros(10, dtype = int)
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
-    if counter == 50: # stop at 500 for testing denormalization/shuffling
+    if counter == 1: # stop at 500 for testing denormalization/shuffling
         break
     
     data,labels=data.to(device),labels.to(device)
+    
+    data_clean = data
+
     
     # make the adversarial image
     data_adv,patch_loc = attacker.perturb(data, labels)
@@ -151,12 +154,16 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
                            std = [ 1., 1., 1. ]),
        ])
     data_adv_copy = ds_inverse_transforms(data_adv)
+    data_clean_copy = ds_inverse_transforms(data_clean)
+
 
     # Keep track of how many images in this class we've saved
     label = int(labels[0])
     
     save_image(data_adv_copy,
-       f"./data/imagenette_patch/val/{label}/{file_name}")
+       f"./data/imagenette_patch/val/{label}/patch_{file_name}")
+    save_image(data_clean_copy,
+       f"./data/imagenette_patch/val/{label}/clean_{file_name}")
     class_count[label] += 1
 
 

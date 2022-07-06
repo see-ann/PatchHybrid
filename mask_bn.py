@@ -138,7 +138,7 @@ skewness_list = []
 counter = 0
 for data,labels in tqdm(val_loader):
     
-    if counter == 1 :
+    if counter == 2 :
         break
 
     sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
@@ -153,10 +153,6 @@ for data,labels in tqdm(val_loader):
     print(f"class folder: {class_folder}")
     print(f"file name: {file_name}")
    
-
-    if DATASET == 'imagenette':
-        if file_name == 'n01440764_10251.JPEG':
-            break
     
     data=data.to(device)
     labels = labels.numpy()
@@ -287,7 +283,7 @@ elif 'bagnet9' in args.model:
 fig, ax = plt.subplots(1, 1)
 ax.boxplot(logit_mgtds)
 ax.set_ylabel("Logit Magnitude")
-ax.set_title("Boxplot of Local Logit Magnitudes (Single Image)")
+ax.set_title(f"Boxplot of Local Logit Magnitudes {file_name}")
 
 if 'bagnet17' in args.model:
     if DATASET == 'imagenette_patch':
@@ -324,4 +320,3 @@ elif 'bagnet9' in args.model:
 # print("------------------------------")
 #print(output_clean.shape)
 #print(logit_mgtds.shape)
-
