@@ -141,9 +141,6 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
     preceding_file_name = sample_fname_list[-2]
     file_name = sample_fname_list[-1]
 
-    print(sample_fname)
-    print(preceding_file_name)
-    print(file_name)
 
     # finally correct (i think) attempt at inverse tranform
     # needed to apply mean and std transforms separately

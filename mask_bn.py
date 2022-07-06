@@ -137,12 +137,23 @@ skewness_list = []
 
 counter = 0
 for data,labels in tqdm(val_loader):
+    
+    sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
 
+    sample_fname_list = sample_fname.split('/')
+
+    preceding_file_name = sample_fname_list[-2]
+    file_name = sample_fname_list[-1]
+
+
+    print(sample_fname)
+    print(preceding_file_name)
+    print(file_name)
    
-    counter += 1
 
-    if counter == 2:
-        break
+    if DATASET == 'imagenette':
+        if file_name == 'n01440764_10251.JPEG':
+            break
     
     data=data.to(device)
     labels = labels.numpy()
@@ -221,13 +232,25 @@ for i in range(logits_2d.shape[1]):
     ax.set_ylabel("Count")
     ax.set_title(f"Distribution of Local Class {i} Evidence")
     if 'bagnet17' in args.model:
-        plt.savefig(f"class{i}_dist_bn17")
+        if DATASET == 'imagenette_patch':
+            plt.savefig(f"./adversial_plots/bn17/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+        elif DATASET == 'imagenette':
+            plt.savefig(f"./clean_plots/bn17/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+
 
     elif 'bagnet33' in args.model:
-        plt.savefig(f"class{i}_dist_bn33")
+        if DATASET == 'imagenette_patch':
+            plt.savefig(f"./adversial_plots/bn33/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+        
+        elif DATASET == 'imagenette':
+            plt.savefig(f"./clean_plots/bn33/classes/class{i}_dist_{preceding_file_name}_{file_name}")
 
     elif'bagnet9' in args.model:
-        plt.savefig(f"class{i}_dist_bn17")
+        if DATASET == 'imagenette_patch':
+            plt.savefig(f"./adversial_plots/bn9/classes/class{i}_dist_{preceding_file_name}_{file_name}")
+        
+        elif DATASET == 'imagenette':
+            plt.savefig(f"./clean_plots/bn9/classes/class{i}_dist_{preceding_file_name}_{file_name}")
 
 
 
@@ -238,13 +261,55 @@ ax.set_ylabel("Count")
 ax.set_title("Distribution of Local Logit Magnitudes")
 
 if 'bagnet17' in args.model:
-    plt.savefig("logits_dist_bn17")
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn17/logits_dist_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn17/logits_dist_{preceding_file_name}_{file_name}")
+
 
 elif 'bagnet33' in args.model:
-    plt.savefig("logits_dist_bn33")
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn33/logits_dist_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn33/logits_dist_{preceding_file_name}_{file_name}")
+
 
 elif 'bagnet9' in args.model:
-    plt.savefig("logits_dist_bn9")
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn9/logits_dist_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn9/logits_dist_{preceding_file_name}_{file_name}")
+
+
+fig, ax = plt.subplots(1, 1)
+ax.boxplot(logit_mgtds)
+ax.set_xlabel("Logit Magnitude")
+ax.set_title("Boxplot of Local Logit Magnitudes (Single Image)")
+
+if 'bagnet17' in args.model:
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn17/logits_boxplot_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn17/logits_boxplot_{preceding_file_name}_{file_name}")
+
+
+
+elif 'bagnet33' in args.model:
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn33/logits_boxplot_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn33/logits_boxplot_{preceding_file_name}_{file_name}")
+
+
+elif 'bagnet9' in args.model:
+    if DATASET == 'imagenette_patch':
+        plt.savefig(f"./adversial_plots/bn9/logits_boxplot_{preceding_file_name}_{file_name}")
+    elif DATASET == 'imagenette':
+        plt.savefig(f"./clean_plots/bn9/logits_boxplot_{preceding_file_name}_{file_name}")
+
+
+
+
 
 # cases,cnt=np.unique(result_list,return_counts=True)
 # print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
