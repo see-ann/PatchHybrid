@@ -1,3 +1,4 @@
+from requests import patch
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -66,7 +67,7 @@ elif DATASET == 'cifar':
     class_names = val_dataset.classes
 
 # set batch_size = 1 for single images, shuffle=True for a variety of classes
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=False)
 
 #build and initialize model
 device = 'cuda' #if torch.cuda.is_available() else 'cpu'
@@ -127,25 +128,19 @@ patch_loc_list=[]
 class_count = np.zeros(10, dtype = int)
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
-    if counter == 1: # stop at 500 for testing denormalization/shuffling
+    
+    if counter == 500: 
         break
     
     data,labels=data.to(device),labels.to(device)
     
+    # clean image
     data_clean = data
-
     
     # make the adversarial image
     data_adv,patch_loc = attacker.perturb(data, labels)
 
-    sample_fname, _ = val_loader.dataset.samples[counter]
-    sample_fname_list = sample_fname.split('/')
-
-    preceding_file_name = sample_fname_list[-2]
-    file_name = sample_fname_list[-1]
-
-
-    # finally correct (i think) attempt at inverse tranform
+    # finally correct inverse tranform
     # needed to apply mean and std transforms separately
     ds_inverse_transforms = transforms.Compose([
        transforms.Normalize(mean = [ 0., 0., 0. ],
@@ -156,16 +151,20 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
     data_adv_copy = ds_inverse_transforms(data_adv)
     data_clean_copy = ds_inverse_transforms(data_clean)
 
-
-    # Keep track of how many images in this class we've saved
+    # Formatted filename
     label = int(labels[0])
+    formatted_fn = f"class{label}_img{class_count[label]}"
+    print(f"formatted filename: {formatted_fn}")
     
-    save_image(data_adv_copy,
-       f"./data/imagenette_patch/val/{label}/patch_{file_name}")
-    save_image(data_clean_copy,
-       f"./data/imagenette_patch/val/{label}/clean_{file_name}")
-    class_count[label] += 1
+    # Save patch and clean version of image
+    save_path = f"./data/imagenette_pair/val/{label}/{formatted_fn}"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
+    save_image(data_adv_copy, os.path.join(save_path, f"patch_{formatted_fn}.png"))
+    save_image(data_clean_copy, os.path.join(save_path, f"clean_{formatted_fn}.png"))
+    
+    class_count[label] += 1
 
     output_adv = model(data_adv)
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
