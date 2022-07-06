@@ -115,14 +115,6 @@ adv_list=[]
 error_list=[]
 accuracy_list=[]
 patch_loc_list=[]
-
- 
-# Note: the saved adversarial images have already gone through the
-# Resize, CenterCrop, and ToTensor transformations. So when we feed these
-# images to mask_bn, we should be sure to not perform these again.
- 
-# To address this, there is a separate case for preprocessing when
-# --dataset == 'imagenette_patch' in mask_bn.py
  
 # For filepaths of saved images
 class_count = np.zeros(10, dtype = int)
@@ -150,7 +142,7 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
 
     # Formatted filename
     label = int(labels[0])
-    formatted_fn = f"class{label}_img{class_count[label]}"
+    formatted_fn = f"class{label}_img{class_count[label].png}"
     print(f"formatted filename: {formatted_fn}")
     
     # Save patch and clean version of image
@@ -158,8 +150,8 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    save_image(data_adv_copy, os.path.join(save_path, f"patch_{formatted_fn}.png"))
-    save_image(data_clean_copy, os.path.join(save_path, f"clean_{formatted_fn}.png"))
+    save_image(data_adv_copy, os.path.join(save_path, f"patch_{formatted_fn}"))
+    save_image(data_clean_copy, os.path.join(save_path, f"clean_{formatted_fn}"))
     
     class_count[label] += 1
 
