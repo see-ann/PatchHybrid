@@ -23,11 +23,14 @@ import PIL
 from scipy import stats
 
 
+plt.close('all')
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--model_dir",default='checkpoints',type=str,help="path to checkpoints")
 parser.add_argument('--data_dir', default='data', type=str,help="path to data")
-parser.add_argument('--dataset', default='imagenette_patch', choices=('imagenette', 'imagenette_patch', 'imagenet','cifar'),type=str,help="dataset")
+parser.add_argument('--dataset', default='imagenette_pair', choices=('imagenette_patch', 'imagenette_pair'),type=str,help="dataset")
+# parser.add_argument('--dataset', default='imagenette_pair', choices=('imagenette', 'imagenette_patch', 'imagenet','cifar'),type=str,help="dataset")
 parser.add_argument("--model",default='bagnet17',type=str,help="model name")
 parser.add_argument("--clip",default=-1,type=int,help="clipping value; do clipping when this argument is set to positive")
 parser.add_argument("--aggr",default='none',type=str,help="aggregation methods. set to none for local feature")
@@ -44,9 +47,9 @@ DATA_DIR=os.path.join(args.data_dir,args.dataset)
 DATASET = args.dataset
 def get_dataset(ds,data_dir):
     
-    # adversarial images that we created already underwent the Resize
-    # and CenterCrop functions so only need to normalize here.
-    if ds == 'imagenette_patch':
+    # imagenette_patch and imagenettte_pair datasets already underwent 
+    # Resize and CenterCrop functions, so only need to normalize here.
+    if ds in ['imagenette_patch', 'imagenette_pair'] :
        ds_dir=os.path.join(data_dir,'val')
        ds_transforms = transforms.Compose([
             transforms.ToTensor(),
@@ -99,7 +102,7 @@ elif 'bagnet9' in args.model:
     rf_size=9
 
 
-if DATASET == 'imagenette' or DATASET == 'imagenette_patch':
+if DATASET in ['imagenette', 'imagenette_patch', 'imagenette_pair'] :
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, len(class_names))
     model = torch.nn.DataParallel(model)
@@ -137,28 +140,21 @@ skewness_list = []
 
 counter = 0
 for data,labels in tqdm(val_loader):
-    
+
     if counter == 2 :
         break
 
     sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
-
     sample_fname_list = sample_fname.split('/')
-
-    class_folder = sample_fname_list[-2]
     file_name = sample_fname_list[-1]
-
-
-    print(f"full file name: {sample_fname}")
-    print(f"class folder: {class_folder}")
     print(f"file name: {file_name}")
    
-    
     data=data.to(device)
     labels = labels.numpy()
+    label = labels[0]
 
-    print(f"correct label: {labels[0]}")
-    #print(labels)
+    print(f"correct label: {label}")
+    # print(labels)
     # print(len(labels))
     output_clean = model(data).detach().cpu().numpy() # logits
     #output_clean = softmax(output_clean,axis=-1) # confidence
@@ -166,7 +162,7 @@ for data,labels in tqdm(val_loader):
 
     #note: the provable analysis of robust masking is cpu-intensive and can take some time to finish
     #you can dump the local feature and do the provable analysis with another script so that GPU mempry is not always occupied  
-    
+
     for i in range(len(labels)):
         if args.m:#robust masking
             local_feature = output_clean[i]
@@ -182,133 +178,85 @@ for data,labels in tqdm(val_loader):
             result_list.append(result)
             clean_pred = clipping_defense(output_clean[i])
             clean_corr += clean_pred == labels[i]   
+    
     print(f"clean prediction: {clean_pred}")
     print(f"result: {result}")
     acc_clean = np.sum(np.argmax(np.mean(output_clean,axis=(1,2)),axis=1) == labels)
     accuracy_list.append(acc_clean)
 
     output_shape = output_clean.shape
-    logit_mgtds = np.linalg.norm(output_clean.reshape((output_shape[1]*output_shape[2], 10)), axis=1)
-
-
-
-    skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
-    
-
-    skewness_list.append(skewness)
-
-
-    output_shape = output_clean.shape
-    print(f"output_clean shape: {output_shape}")
     logits_2d = output_clean.reshape(output_shape[1]*output_shape[2], 10)
     logit_mgtds = np.linalg.norm(logits_2d, axis=1)
-    print(f"logits_2d shape: {logits_2d.shape}")
-    print(f"logits_mgtds shape: {logit_mgtds.shape}")
-    counter += 1
+    
+    # print(f"output_clean shape: {output_shape}")
+    # print(f"logits_2d shape: {logits_2d.shape}")
+    # print(f"logits_mgtds shape: {logit_mgtds.shape}")
 
+    skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
+    skewness_list.append(skewness)
 
+    # Class evidence histograms
+    for i in range(logits_2d.shape[1]):
+        sum = np.sum(logits_2d[:, i])
+        sum = np.floor(sum)
+        print(f"sum of class {i} evidence: {sum}")
+        fig, ax = plt.subplots(1, 1)
+        ax.hist(logits_2d[:, i], bins = 40)
+        ax.set_xlabel(f"Class {i} Evidence")
+        ax.set_ylabel("Count")
+        ax.set_title(f"Distribution of Local Class {i} Evidence")
+        
+        if 'bagnet17' in args.model and DATASET == 'imagenette_pair':
+            if counter % 2 == 0: # even counters are clean
+                plt.savefig(f"./clean_plots/bn17/class_evidence/class{i}_dist_{file_name}")
 
-#     skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
-#     std = np.std(logit_mgtds)
+            if counter % 2 == 1: # odd counters are patched
+                plt.savefig(f"./adversial_plots/bn17/class_evidence/class{i}_dist_{file_name}")
 
-#     skewness_list.append(skewness)
-#     std_list.append(std)
-
-
-
-# print("skewness_list: ")
-# print(skewness_list)
-# print(np.mean(skewness_list))
-# print(np.mean(std_list))
-
-for i in range(logits_2d.shape[1]):
-    sum = np.sum(logits_2d[:, i])
-    sum = np.floor(sum)
-    print(f"sum of class {i} evidence: {sum}")
+        plt.close(fig)
+       
+    # Logit magnitude histogram
     fig, ax = plt.subplots(1, 1)
-    ax.hist(logits_2d[:, i], bins = 40)
-    ax.set_xlabel(f"Class {i} Evidence")
+    ax.hist(logit_mgtds, bins = 40)
+    ax.set_xlabel("Logit Magnitude")
     ax.set_ylabel("Count")
-    ax.set_title(f"Distribution of Local Class {i} Evidence")
-    if 'bagnet17' in args.model:
-        if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn17/classes/class{i}_dist_{class_folder}_{file_name}")
-        elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn17/classes/class{i}_dist_{class_folder}_{file_name}")
+    ax.set_title("Distribution of Local Logit Magnitudes")
 
+    
+    if 'bagnet17' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn17/logit_mgtds_hist/logits_dist_{file_name}")
 
-    elif 'bagnet33' in args.model:
-        if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn33/classes/class{i}_dist_{class_folder}_{file_name}")
-        
-        elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn33/classes/class{i}_dist_{class_folder}_{file_name}")
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn17/logit_mgtds_hist/logits_dist_{file_name}")
+    
+    plt.close(fig)
 
-    elif'bagnet9' in args.model:
-        if DATASET == 'imagenette_patch':
-            plt.savefig(f"./adversial_plots/bn9/classes/class{i}_dist_{class_folder}_{file_name}")
-        
-        elif DATASET == 'imagenette':
-            plt.savefig(f"./clean_plots/bn9/classes/class{i}_dist_{class_folder}_{file_name}")
+    # Boxplot
+    fig, ax = plt.subplots(1, 1)
+    ax.boxplot(logit_mgtds)
+    ax.set_ylabel("Logit Magnitude")
+    ax.set_title(f"Boxplot of Local Logit Magnitudes {file_name}")
 
+    if 'bagnet17' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn17/logit_mgtds_box/logits_box_{file_name}")
 
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn17/logit_mgtds_box/logits_box_{file_name}")
 
-fig, ax = plt.subplots(1, 1)
-ax.hist(logit_mgtds, bins = 40)
-ax.set_xlabel("Logit Magnitude")
-ax.set_ylabel("Count")
-ax.set_title("Distribution of Local Logit Magnitudes")
+    plt.close(fig)
 
-if 'bagnet17' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn17/logits_dist_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn17/logits_dist_{class_folder}_{file_name}")
+    # skewness = (np.mean(logit_mgtds) - np.median(logit_mgtds))/np.std(logit_mgtds)
+    # std = np.std(logit_mgtds)
 
-
-elif 'bagnet33' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn33/logits_dist_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn33/logits_dist_{class_folder}_{file_name}")
-
-
-elif 'bagnet9' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn9/logits_dist_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn9/logits_dist_{class_folder}_{file_name}")
-
-
-fig, ax = plt.subplots(1, 1)
-ax.boxplot(logit_mgtds)
-ax.set_ylabel("Logit Magnitude")
-ax.set_title(f"Boxplot of Local Logit Magnitudes {file_name}")
-
-if 'bagnet17' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn17/logits_boxplot_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn17/logits_boxplot_{class_folder}_{file_name}")
-
-
-
-elif 'bagnet33' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn33/logits_boxplot_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn33/logits_boxplot_{class_folder}_{file_name}")
-
-
-elif 'bagnet9' in args.model:
-    if DATASET == 'imagenette_patch':
-        plt.savefig(f"./adversial_plots/bn9/logits_boxplot_{class_folder}_{file_name}")
-    elif DATASET == 'imagenette':
-        plt.savefig(f"./clean_plots/bn9/logits_boxplot_{class_folder}_{file_name}")
-
-
-
-
+    # skewness_list.append(skewness)
+    # std_list.append(std)
+    # print("skewness_list: ")
+    # print(skewness_list)
+    # print(np.mean(skewness_list))
+    # print(np.mean(std_list))
+    counter += 1
 
 # cases,cnt=np.unique(result_list,return_counts=True)
 # print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
@@ -318,5 +266,5 @@ elif 'bagnet9' in args.model:
 # print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
 # print("Provable analysis breakdown",cnt/len(result_list))
 # print("------------------------------")
-#print(output_clean.shape)
-#print(logit_mgtds.shape)
+# print(output_clean.shape)
+# print(logit_mgtds.shape)
