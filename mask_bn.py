@@ -23,7 +23,6 @@ import PIL
 from scipy import stats
 
 
-plt.close('all')
 
 parser = argparse.ArgumentParser()
 
@@ -213,6 +212,20 @@ for data,labels in tqdm(val_loader):
             if counter % 2 == 1: # odd counters are patched
                 plt.savefig(f"./adversial_plots/bn17/class_evidence/class{i}_dist_{file_name}")
 
+        if 'bagnet33' in args.model and DATASET == 'imagenette_pair':
+            if counter % 2 == 0: # even counters are clean
+                plt.savefig(f"./clean_plots/bn33/class_evidence/class{i}_dist_{file_name}")
+
+            if counter % 2 == 1: # odd counters are patched
+                plt.savefig(f"./adversial_plots/bn33/class_evidence/class{i}_dist_{file_name}")
+
+        if 'bagnet9' in args.model and DATASET == 'imagenette_pair':
+            if counter % 2 == 0: # even counters are clean
+                plt.savefig(f"./clean_plots/bn9/class_evidence/class{i}_dist_{file_name}")
+
+            if counter % 2 == 1: # odd counters are patched
+                plt.savefig(f"./adversial_plots/bn9/class_evidence/class{i}_dist_{file_name}")
+
         plt.close(fig)
        
     # Logit magnitude histogram
@@ -229,6 +242,20 @@ for data,labels in tqdm(val_loader):
 
         if counter % 2 == 1: # odd counters are patched
             plt.savefig(f"./adversial_plots/bn17/logit_mgtds_hist/logits_dist_{file_name}")
+
+    if 'bagnet33' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn33/logit_mgtds_hist/logits_dist_{file_name}")
+
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn33/logit_mgtds_hist/logits_dist_{file_name}")
+
+    if 'bagnet9' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn9/logit_mgtds_hist/logits_dist_{file_name}")
+
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn9/logit_mgtds_hist/logits_dist_{file_name}")
     
     plt.close(fig)
 
@@ -244,6 +271,20 @@ for data,labels in tqdm(val_loader):
 
         if counter % 2 == 1: # odd counters are patched
             plt.savefig(f"./adversial_plots/bn17/logit_mgtds_box/logits_box_{file_name}")
+
+    if 'bagnet9' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn9/logit_mgtds_box/logits_box_{file_name}")
+
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn9/logit_mgtds_box/logits_box_{file_name}")
+
+    if 'bagnet33' in args.model and DATASET == 'imagenette_pair':
+        if counter % 2 == 0: # even counters are clean
+            plt.savefig(f"./clean_plots/bn33/logit_mgtds_box/logits_box_{file_name}")
+
+        if counter % 2 == 1: # odd counters are patched
+            plt.savefig(f"./adversial_plots/bn33/logit_mgtds_box/logits_box_{file_name}")
 
     plt.close(fig)
 
