@@ -67,7 +67,7 @@ elif DATASET == 'cifar':
     class_names = val_dataset.classes
 
 # set batch_size = 1 for single images, shuffle=True for a variety of classes
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=False)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=True)
 
 #build and initialize model
 device = 'cuda' #if torch.cuda.is_available() else 'cpu'
@@ -142,11 +142,21 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
 
     # Formatted filename
     label = int(labels[0])
-    formatted_fn = f"class{label}_img{class_count[label].png}"
+    formatted_fn = f"class{label}_img{class_count[label]}.png"
     print(f"formatted filename: {formatted_fn}")
     
     # Save patch and clean version of image
-    save_path = f"./data/imagenette_pair/val/{label}/{formatted_fn}"
+    if 'bagnet17' in args.model:
+        mod = 'bn17'
+    elif 'bagnet33' in args.model:
+        mod = 'bn33'
+    elif 'bagnet9' in args.model:
+        mod = 'bn9'
+    elif 'resnet50' in args.model:
+        mod = 'rn50'
+
+    save_path = f"./data/imagenette_pair_{mod}/val/{label}/{formatted_fn}"
+
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
