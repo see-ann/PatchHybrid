@@ -7,24 +7,16 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-import cv2
-import torchvision.models as models
 
 import nets.dsresnet_imgnt as resnet_imgnt
 import nets.dsresnet_cifar as resnet_cifar
 from torchvision import datasets,transforms
 from tqdm import tqdm
 from utils.defense_utils import *
-import numpy as np
+import matplotlib.pyplot as plt
 
 import os
 import argparse
-
-
-# model = models.resnet18(pretrained=True)
-model = models.vgg16(pretrained=True)
-
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_dir",default='checkpoints',type=str,help="path to checkpoints")
@@ -81,9 +73,6 @@ print('==> Building model..')
 if DATASET == 'imagenette':
     net = resnet_imgnt.resnet50()
     net = torch.nn.DataParallel(net)
-
-
-    
     num_ftrs = net.module.fc.in_features
     net.module.fc = nn.Linear(num_ftrs, num_cls)  
     checkpoint = torch.load(os.path.join(MODEL_DIR,'ds_nette.pth'))
@@ -111,104 +100,58 @@ net = net.to(device)
 net.eval()
 
 
-# if args.ds:#ds
-#     correct = 0
-#     cert_correct = 0
-#     cert_incorrect = 0
-#     total = 0
-#     with torch.no_grad():
-#         for inputs, targets in tqdm(val_loader):
-#             inputs, targets = inputs.to(device), targets.to(device)
-#             total += targets.size(0)
-#             predictions,  certyn = ds(inputs, net,args.band_size, args.patch_size, num_cls,threshold = 0.2)
-#             correct += (predictions.eq(targets)).sum().item()
-#             cert_correct += (predictions.eq(targets) & certyn).sum().item()
-#             cert_incorrect += (~predictions.eq(targets) & certyn).sum().item()
-#     print('Results for Derandomized Smoothing')
-#     print('Using band size ' + str(args.band_size) + ' with threshhold ' + str(0.2))
-#     print('Certifying For Patch ' +str(args.patch_size) + '*'+str(args.patch_size))
-#     print('Total images: ' + str(total))
-#     print('Correct: ' + str(correct) + ' (' + str((100.*correct)/total)+'%)')
-#     print('Certified Correct class: ' + str(cert_correct) + ' (' + str((100.*cert_correct)/total)+'%)')
-#     print('Certified Wrong class: ' + str(cert_incorrect) + ' (' + str((100.*cert_incorrect)/total)+'%)')
+if args.ds:#ds
+    correct = 0
+    cert_correct = 0
+    cert_incorrect = 0
+    total = 0
+    counter = 0
+    with torch.no_grad():
+        for inputs, targets in tqdm(val_loader):
 
-# if args.m:#mask-ds
-#     result_list=[]
-#     clean_corr_list=[]
-#     with torch.no_grad():
-#         for inputs, targets in tqdm(val_loader):
-#             inputs = inputs.to(device)
-#             targets = targets.numpy()
-#             result,clean_corr = masking_ds(inputs,targets,net,args.band_size, args.patch_size,thres=args.thres)
-#             result_list+=result
-#             clean_corr_list+=clean_corr
+            if counter == 1 :
+              break
 
-#     cases,cnt=np.unique(result_list,return_counts=True)
-#     print('Results for Mask-DS')
-#     print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
-#     print("Clean accuracy with defense:",np.mean(clean_corr_list))
-#     print("------------------------------")
-#     print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
-#     print("Provable analysis breakdown:",cnt/len(result_list))
+            counter+=1
+
+            inputs, targets = inputs.to(device), targets.to(device)
+            total += targets.size(0)
+            predictions,  certyn, logits  = ds(inputs, net,args.band_size, args.patch_size, num_cls,threshold = 0.2)
+            correct += (predictions.eq(targets)).sum().item()
+            cert_correct += (predictions.eq(targets) & certyn).sum().item()
+            cert_incorrect += (~predictions.eq(targets) & certyn).sum().item()
+
+            logits = logits.cpu().numpy()
+            print("Predictions: ")
+            print(predictions)
+
+            print("Logit Sums")
+            print(np.sum(logits, axis = 0))
+
+    print('Results for Derandomized Smoothing')
+    print('Using band size ' + str(args.band_size) + ' with threshhold ' + str(0.2))
+    print('Certifying For Patch ' +str(args.patch_size) + '*'+str(args.patch_size))
+    print('Total images: ' + str(total))
+    print('Correct: ' + str(correct) + ' (' + str((100.*correct)/total)+'%)')
+    print('Certified Correct class: ' + str(cert_correct) + ' (' + str((100.*cert_correct)/total)+'%)')
+    print('Certified Wrong class: ' + str(cert_incorrect) + ' (' + str((100.*cert_incorrect)/total)+'%)')
 
 
+if args.m:#mask-ds
+    result_list=[]
+    clean_corr_list=[]
+    with torch.no_grad():
+        for inputs, targets in tqdm(val_loader):
+            inputs = inputs.to(device)
+            targets = targets.numpy()
+            result,clean_corr = masking_ds(inputs,targets,net,args.band_size, args.patch_size,thres=args.thres)
+            result_list+=result
+            clean_corr_list+=clean_corr
 
-class FeatureExtractor(nn.Module):
-  def __init__(self, model):
-    super(FeatureExtractor, self).__init__()
-		# Extract VGG-16 Feature Layers
-    self.features = list(model.features)
-    self.features = nn.Sequential(*self.features)
-		# Extract VGG-16 Average Pooling Layer
-    self.pooling = model.avgpool
-		# Convert the image into one-dimensional vector
-    self.flatten = nn.Flatten()
-		# Extract the first part of fully-connected layer from VGG16
-    self.fc = model.classifier[0]
-  
-  def forward(self, x):
-		# It will take the input 'x' until it returns the feature vector called 'out'
-    out = self.features(x)
-    out = self.pooling(out)
-    out = self.flatten(out)
-    out = self.fc(out) 
-    return out 
-
-# Initialize the model
-new_model = FeatureExtractor(model)
-device = torch.device('cuda:0' if torch.cuda.is_available() else "cpu")
-
-new_model = new_model.to(device)
-
-
-# Transform the image, so it becomes readable with the model
-transform = transforms.Compose([
-  transforms.ToPILImage(),
-  transforms.CenterCrop(512),
-  transforms.Resize(448),
-  transforms.ToTensor()                              
-])
-
-
-features = []
-
-# Read the file
-img = cv2.imread('./test_images/img320.png')
-# Reshape the image. PyTorch model reads 4-dimensional tensor
-# [batch_size, channels, width, height]
-img = transform(img)
-img = img.reshape(1, 3, 448, 448)
-img = img.to(device)
-# We only extract features, so we don't need gradient
-with torch.no_grad():
-    # Extract the feature from the image
-    feature = new_model(img)
-    print(feature)
-    # Convert to NumPy Array, Reshape it, and save it to features variable
-    features.append(feature.cpu().detach().numpy().reshape(-1))
-
-# Convert to NumPy Array
-features = np.array(features)
-print(features)
-
-print(features.shape)
+    cases,cnt=np.unique(result_list,return_counts=True)
+    print('Results for Mask-DS')
+    print("Provable robust accuracy:",cnt[-1]/len(result_list) if len(cnt)==3 else 0)
+    print("Clean accuracy with defense:",np.mean(clean_corr_list))
+    print("------------------------------")
+    print("Provable analysis cases (0: incorrect prediction; 1: vulnerable; 2: provably robust):",cases)
+    print("Provable analysis breakdown:",cnt/len(result_list))
