@@ -23,7 +23,7 @@ parser.add_argument("--model_dir",default='checkpoints',type=str,help="path to c
 parser.add_argument('--band_size', default=-1, type=int, help='size of each smoothing band')
 parser.add_argument('--patch_size', default=-1, type=int, help='patch_size')
 parser.add_argument('--thres', default=0.0, type=float, help='detection threshold for robus masking')
-parser.add_argument('--dataset', default='imagenette', choices=('imagenette','imagenet','cifar'),type=str,help="dataset")
+parser.add_argument('--dataset', default='imagenette', choices=('imagenette','imagenet','cifar', 'imagenette_pair_rn50'),type=str,help="dataset")
 parser.add_argument('--data_dir', default='data', type=str,help="path to data")
 
 parser.add_argument('--skip', default=1,type=int, help='Number of images to skip')
@@ -41,7 +41,7 @@ device = 'cuda' #if torch.cuda.is_available() else 'cpu'
 cudnn.benchmark = True
 
 def get_dataset(ds,data_dir):
-    if ds in ['imagenette','imagenet']:
+    if ds in ['imagenette','imagenet', 'imagenette_pair_rn50']:
         ds_dir=os.path.join(data_dir,'val')
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
@@ -70,7 +70,7 @@ print('==> Building model..')
 
 
 
-if DATASET == 'imagenette':
+if DATASET == 'imagenette' or DATASET == 'imagenette_pair_rn50':
     net = resnet_imgnt.resnet50()
     net = torch.nn.DataParallel(net)
     num_ftrs = net.module.fc.in_features
@@ -109,10 +109,15 @@ if args.ds:#ds
     with torch.no_grad():
         for inputs, targets in tqdm(val_loader):
 
-            if counter == 1 :
+            if counter == 2:
               break
 
             counter+=1
+            sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
+            sample_fname_list = sample_fname.split('/')
+            file_name = sample_fname_list[-1]
+            print(f"file name: {file_name}")
+
 
             inputs, targets = inputs.to(device), targets.to(device)
             total += targets.size(0)
@@ -125,8 +130,29 @@ if args.ds:#ds
             print("Predictions: ")
             print(predictions)
 
+            fig, ax = plt.subplots(1, 1)
+            ax.hist(np.sum(logits, axis = 0), bins = 40)
+            ax.set_xlabel("Logit Sum")
+            ax.set_ylabel("Count")
+            ax.set_title("Distribution of Local Logit Magnitudes")
+
+
             print("Logit Sums")
             print(np.sum(logits, axis = 0))
+            
+            
+
+            # Boxplot
+            fig, ax = plt.subplots(1, 1)
+            ax.boxplot(np.sum(logits, axis = 0))
+            ax.set_ylabel("Logit Sums")
+            ax.set_title(f"Boxplot of Local Logit Sums {file_name}")
+
+            if counter % 2 == 0: # even counters are clean
+                plt.savefig(f"./plots/rn50_patch_plots/clean_plots/ds_{args.band_size}/logit_mgtds_box/logits_box_{file_name}")
+
+            if counter % 2 == 1: # odd counters are patched
+                plt.savefig(f"./plots/rn50_patch_plots/adversial_plots/ds_{args.band_size}/logit_mgtds_box/logits_box_{file_name}")
 
     print('Results for Derandomized Smoothing')
     print('Using band size ' + str(args.band_size) + ' with threshhold ' + str(0.2))
