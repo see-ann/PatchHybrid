@@ -1,0 +1,12 @@
+Adv sum of class 0 evidence: 1903.0
+Adv sum of class 1 evidence: 512.0
+Adv sum of class 2 evidence: -608.0
+Adv sum of class 3 evidence: 486.0
+Adv sum of class 4 evidence: -2964.0
+Adv sum of class 5 evidence: 335.0
+Adv sum of class 6 evidence: -949.0
+Adv sum of class 7 evidence: 707.0
+Adv sum of class 8 evidence: -634.0
+Adv sum of class 9 evidence: 1149.0
+
+Adv max label: 0 and max sum: 1903.0

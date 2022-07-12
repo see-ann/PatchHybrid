@@ -2,6 +2,7 @@
 # Part of code adapted from https://github.com/alevine0/patchSmoothing/blob/master/certify_imagenet_band.py
 ##############################################################################################################
 
+from cProfile import label
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,6 +15,7 @@ from torchvision import datasets,transforms
 from tqdm import tqdm
 from utils.defense_utils import *
 import matplotlib.pyplot as plt
+from torchvision.utils import save_image
 
 import os
 import argparse
@@ -61,7 +63,7 @@ def get_dataset(ds,data_dir):
 val_dataset_,class_names = get_dataset(DATASET,DATA_DIR)
 skips = list(range(0, len(val_dataset_), args.skip))
 val_dataset = torch.utils.data.Subset(val_dataset_, skips)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32,shuffle=False)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1,shuffle=False)
 
 num_cls = len(class_names)
 
@@ -108,51 +110,116 @@ if args.ds:#ds
     counter = 0
     with torch.no_grad():
         for inputs, targets in tqdm(val_loader):
-
-            if counter == 2:
-              break
-
-            counter+=1
+            if counter == 16:
+                break
             sample_fname = val_loader.sampler.data_source.dataset.imgs[counter][0]
             sample_fname_list = sample_fname.split('/')
             file_name = sample_fname_list[-1]
+            folder_name = sample_fname_list[-2]
+            label_name = sample_fname_list[-3]
             print(f"file name: {file_name}")
+            print(f"folder name: {folder_name}")
+            print(f"label name: {label_name}")
+
+
 
 
             inputs, targets = inputs.to(device), targets.to(device)
             total += targets.size(0)
-            predictions,  certyn, logits  = ds(inputs, net,args.band_size, args.patch_size, num_cls,threshold = 0.2)
+            predictions,  certyn, logits_2d  = ds(inputs, net,args.band_size, args.patch_size, num_cls,threshold = 0.2)
             correct += (predictions.eq(targets)).sum().item()
             cert_correct += (predictions.eq(targets) & certyn).sum().item()
             cert_incorrect += (~predictions.eq(targets) & certyn).sum().item()
 
-            logits = logits.cpu().numpy()
             print("Predictions: ")
-            print(predictions)
+            print(predictions.cpu().numpy())
 
+            print("Logits: ")
+            print(logits_2d)
+            print(logits_2d.shape)
+
+            logit_mgtds = np.linalg.norm(logits_2d, axis=1)
+            
+            
+
+            save_path = f"./plots/rn50_patch_plots/ds_{args.band_size}/{label_name}/{folder_name}"
+
+            save_path_names = [save_path+"/class_evidence", save_path+"/logit_mgtds_hist", save_path+"/logit_mgtds_box"]
+
+            for path in save_path_names:
+                if not os.path.exists(path):
+                    os.makedirs(path)
+
+            if counter == 0:
+                f= open(f"{save_path}/info_clean.txt","w+")
+            if counter == 1:
+                f= open(f"{save_path}/info_adv.txt","w+")
+
+
+            max_class = None
+            max_sum = -float("inf")
+             # Class evidence histograms
+            for i in range(logits_2d.shape[1]):
+                sum = np.sum(logits_2d[:, i])
+                sum = np.floor(sum)
+                print(f"sum of class {i} evidence: {sum}")
+
+                if sum > max_sum:
+                    max_class = i
+                    max_sum = sum
+                fig, ax = plt.subplots(1, 1)
+                ax.hist(logits_2d[:, i], bins = 40)
+                ax.set_xlabel(f"Class {i} Evidence")
+                ax.set_ylabel("Count")
+                ax.set_title(f"Distribution of Local Class {i} Evidence")
+
+                if counter % 2 == 0: # even counters are clean
+                    plt.savefig(f"{save_path_names[0]}/class{i}_clean")
+                    f.write(f"Clean sum of class {i} evidence: {sum}\n")
+
+                if counter % 2 == 1: # odd counters are patched
+                    plt.savefig(f"{save_path_names[0]}/class{i}_adv")
+                    f.write(f"Adv sum of class {i} evidence: {sum}\n")
+            
+                plt.close(fig)
+            if counter % 2 == 0:
+                f.write(f"\nClean max label: {max_class} and max sum: {max_sum}\n")
+            if counter % 2 == 1:
+                f.write(f"\nAdv max label: {max_class} and max sum: {max_sum}\n")
+            
+
+            f.close()
+            # Logit magnitude histogram
             fig, ax = plt.subplots(1, 1)
-            ax.hist(np.sum(logits, axis = 0), bins = 40)
-            ax.set_xlabel("Logit Sum")
+            ax.hist(logit_mgtds, bins = 40)
+            ax.set_xlabel("Logit Magnitude")
             ax.set_ylabel("Count")
             ax.set_title("Distribution of Local Logit Magnitudes")
 
-
-            print("Logit Sums")
-            print(np.sum(logits, axis = 0))
-            
-            
-
-            # Boxplot
-            fig, ax = plt.subplots(1, 1)
-            ax.boxplot(np.sum(logits, axis = 0))
-            ax.set_ylabel("Logit Sums")
-            ax.set_title(f"Boxplot of Local Logit Sums {file_name}")
-
             if counter % 2 == 0: # even counters are clean
-                plt.savefig(f"./plots/rn50_patch_plots/clean_plots/ds_{args.band_size}/logit_mgtds_box/logits_box_{file_name}")
+               plt.savefig(f"{save_path_names[1]}/clean_hist")
+            
 
             if counter % 2 == 1: # odd counters are patched
-                plt.savefig(f"./plots/rn50_patch_plots/adversial_plots/ds_{args.band_size}/logit_mgtds_box/logits_box_{file_name}")
+               plt.savefig(f"{save_path_names[1]}/adv_hist")
+            
+            plt.close(fig)
+            # Boxplot
+            fig, ax = plt.subplots(1, 1)
+            ax.boxplot(logit_mgtds)
+            ax.set_ylabel("Logit Magnitudes")
+            ax.set_title(f"Boxplot of Local Logit Magnitudes {file_name}")
+
+            if counter % 2 == 0: # even counters are clean
+                
+               plt.savefig(f"{save_path_names[2]}/clean_box")
+
+            if counter % 2 == 1: # odd counters are patched
+               plt.savefig(f"{save_path_names[2]}/adv_box")
+            plt.close(fig)
+
+            print(counter)
+            counter+=1
 
     print('Results for Derandomized Smoothing')
     print('Using band size ' + str(args.band_size) + ' with threshhold ' + str(0.2))

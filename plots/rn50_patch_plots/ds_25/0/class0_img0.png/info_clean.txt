@@ -1,0 +1,12 @@
+Clean sum of class 0 evidence: 2083.0
+Clean sum of class 1 evidence: 604.0
+Clean sum of class 2 evidence: -670.0
+Clean sum of class 3 evidence: 495.0
+Clean sum of class 4 evidence: -3064.0
+Clean sum of class 5 evidence: 425.0
+Clean sum of class 6 evidence: -969.0
+Clean sum of class 7 evidence: 703.0
+Clean sum of class 8 evidence: -639.0
+Clean sum of class 9 evidence: 963.0
+
+Clean max label: 0 and max sum: 2083.0

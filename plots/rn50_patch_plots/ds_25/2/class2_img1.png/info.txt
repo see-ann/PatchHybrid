@@ -1,0 +1,24 @@
+Adv sum of class 0 evidence: -2000.0Adv sum of class 1 evidence: -2067.0Adv sum of class 2 evidence: 9061.0Adv sum of class 3 evidence: 2082.0Adv sum of class 4 evidence: -3777.0Adv sum of class 5 evidence: -1197.0Adv sum of class 6 evidence: -1325.0Adv sum of class 7 evidence: 989.0Adv sum of class 8 evidence: 408.0Adv sum of class 9 evidence: -2450.0Adv max label: 2 and max sum: 9061.0Clean sum of class 0 evidence: -2072.0
+Clean sum of class 1 evidence: -2199.0
+Clean sum of class 2 evidence: 9760.0
+Clean sum of class 3 evidence: 2134.0
+Clean sum of class 4 evidence: -3930.0
+Clean sum of class 5 evidence: -1108.0
+Clean sum of class 6 evidence: -1645.0
+Clean sum of class 7 evidence: 590.0
+Clean sum of class 8 evidence: 793.0
+Clean sum of class 9 evidence: -2625.0
+
+Clean max label: 2 and max sum: 9760.0
+Adv sum of class 0 evidence: -2000.0
+Adv sum of class 1 evidence: -2067.0
+Adv sum of class 2 evidence: 9061.0
+Adv sum of class 3 evidence: 2082.0
+Adv sum of class 4 evidence: -3777.0
+Adv sum of class 5 evidence: -1197.0
+Adv sum of class 6 evidence: -1325.0
+Adv sum of class 7 evidence: 989.0
+Adv sum of class 8 evidence: 408.0
+Adv sum of class 9 evidence: -2450.0
+
+Adv max label: 2 and max sum: 9061.0
