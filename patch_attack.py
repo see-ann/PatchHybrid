@@ -121,6 +121,9 @@ class_count = np.zeros(10, dtype = int)
 
 for counter, (data,labels) in enumerate(tqdm(val_loader)):
 
+    if counter == 100 :
+        break
+
     data,labels=data.to(device),labels.to(device)
     
     # clean image
@@ -158,30 +161,47 @@ for counter, (data,labels) in enumerate(tqdm(val_loader)):
     save_path = f"./data/imagenette_pair_{mod}/val/{label}/{formatted_fn}"
 
     if not os.path.exists(save_path):
-        os.makedirs(save_path)
+       os.makedirs(save_path)
 
-    save_image(data_adv_copy, os.path.join(save_path, f"patch_{formatted_fn}"))
-    save_image(data_clean_copy, os.path.join(save_path, f"clean_{formatted_fn}"))
-    
     class_count[label] += 1
 
     output_adv = model(data_adv)
+
+    print(f"True label: {label}")
+    print(f"Model output: {torch.argmax(output_adv, dim=1).cpu().detach().numpy()[0]}")
+
     error_adv=torch.sum(torch.argmax(output_adv, dim=1) != labels).cpu().detach().numpy()
     output_clean = model(data)
     acc_clean=torch.sum(torch.argmax(output_clean, dim=1) == labels).cpu().detach().numpy()
 
     data_adv=data_adv.cpu().detach().numpy()
     patch_loc=patch_loc.cpu().detach().numpy()
+    
+    if (error_adv) :
+        print("Successful attack!")
+
+        # Save successful attacks to test RF hypothesis
+        save_image(data_adv_copy, os.path.join(save_path, f"SUCC_patch_{formatted_fn}"))
+        save_image(data_clean_copy, os.path.join(save_path, f"SUCC_clean_{formatted_fn}"))
+
+        print(f"Saved successful attack image {formatted_fn}")
+    
+    else :
+        print ("Unsuccessful attack :(")
 
     patch_loc_list.append(patch_loc)
     adv_list.append(data_adv)
     error_list.append(error_adv)
     accuracy_list.append(acc_clean)
+    print("\n")
 
 
 adv_list = np.concatenate(adv_list)
+error_arr = np.array(error_list)
 patch_loc_list = np.concatenate(patch_loc_list)
 joblib.dump(adv_list,os.path.join(DUMP_DIR,'patch_adv_list_{}.z'.format(args.patch_size)))
 joblib.dump(patch_loc_list,os.path.join(DUMP_DIR,'patch_loc_list_{}.z'.format(args.patch_size)))
-print("Attack success rate:",np.sum(error_list)/len(val_dataset))
-print("Clean accuracy:",np.sum(accuracy_list)/len(val_dataset))
+#print("Attack success rate:",np.sum(error_list)/len(val_dataset))
+#print("Clean accuracy:",np.sum(accuracy_list)/len(val_dataset))
+print("Attack success rate:",np.sum(error_list)/counter)
+print("Clean accuracy:",np.sum(accuracy_list)/counter)
