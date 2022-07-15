@@ -134,6 +134,7 @@ if args.ds:#ds
             print("Predictions: ")
             print(predictions.cpu().numpy())
 
+
             print("Logits: ")
             print(logits_2d)
             print(logits_2d.shape)
@@ -187,8 +188,6 @@ if args.ds:#ds
             if counter % 2 == 1:
                 f.write(f"\nAdv max label: {max_class} and max sum: {max_sum}\n")
             
-
-            f.close()
             # Logit magnitude histogram
             fig, ax = plt.subplots(1, 1)
             ax.hist(logit_mgtds, bins = 40)

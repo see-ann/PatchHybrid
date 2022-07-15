@@ -152,8 +152,9 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 	'''
 
 	predictions = torch.zeros(inpt.size(0), num_classes).type(torch.int).cuda()
-	logits = torch.zeros(inpt.size(0), num_classes).type(torch.float).cuda()
 	batch = inpt.permute(0,2,3,1) #color channel last
+	counter = 0
+	local_logits = np.zeros((batch.shape[2], num_classes))
 	for pos in range(batch.shape[2]):
 		out_c1 = torch.zeros(batch.shape).cuda()
 		out_c2 = torch.zeros(batch.shape).cuda()
@@ -170,11 +171,15 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 		out_c1 = out_c1.permute(0,3,1,2)
 		out_c2 = out_c2.permute(0,3,1,2)
 		out = torch.cat((out_c1,out_c2), 1)
-		logits += net(out)
+		
 		softmx = torch.nn.functional.softmax(net(out),dim=1)
 		predictions += (softmx >= threshold).type(torch.int).cuda()
+		
+		logits = net(out).cpu().numpy()
+		local_logits[counter, :] = logits
+		counter += 1
 	
-
+	
 	predinctionsnp = predictions.cpu().numpy()
 	idxsort = np.argsort(-predinctionsnp,axis=1,kind='stable')
 	valsort = -np.sort(-predinctionsnp,axis=1,kind='stable')
@@ -184,7 +189,8 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 	idxsecond =  idxsort[:,1] 
 	num_affected_classifications=(size_to_certify + block_size -1)
 	cert = torch.tensor(((val - valsecond >2*num_affected_classifications) | ((val - valsecond ==2*num_affected_classifications)&(idx < idxsecond)))).cuda()
-	return torch.tensor(idx).cuda(), cert, logits
+	
+	return torch.tensor(idx).cuda(), cert, local_logits
 
 
 # mask-ds
