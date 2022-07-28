@@ -155,6 +155,8 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 	batch = inpt.permute(0,2,3,1) #color channel last
 	counter = 0
 	local_logits = np.zeros((batch.shape[2], num_classes))
+
+	softmx_local_logits = np.zeros((batch.shape[2], num_classes))
 	for pos in range(batch.shape[2]):
 		out_c1 = torch.zeros(batch.shape).cuda()
 		out_c2 = torch.zeros(batch.shape).cuda()
@@ -175,6 +177,7 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 		softmx = torch.nn.functional.softmax(net(out),dim=1)
 		predictions += (softmx >= threshold).type(torch.int).cuda()
 		
+		softmx_local_logits[counter, :] = softmx.cpu().numpy()
 		logits = net(out).cpu().numpy()
 		local_logits[counter, :] = logits
 		counter += 1
@@ -190,7 +193,7 @@ def ds(inpt,net,block_size, size_to_certify, num_classes, threshold=0.2):
 	num_affected_classifications=(size_to_certify + block_size -1)
 	cert = torch.tensor(((val - valsecond >2*num_affected_classifications) | ((val - valsecond ==2*num_affected_classifications)&(idx < idxsecond)))).cuda()
 	
-	return torch.tensor(idx).cuda(), cert, local_logits
+	return torch.tensor(idx).cuda(), cert, local_logits, softmx_local_logits
 
 
 # mask-ds

@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='PyTorch CIFAR Attack')
 
 
 parser.add_argument('--band_size', default=4, type=int, help='size of each smoothing band')
-parser.add_argument('--size_of_attack', default=5, type=int, help='size of the attack')
+parser.add_argument('--size_of_attack', default=4, type=int, help='size of the attack')
 parser.add_argument('--steps', default=150, type=int, help='Attack steps')
 parser.add_argument('--randomizations', default=1, type=int, help='Number of random restarts')
 parser.add_argument('--step_size', default=0.05, type=float, help='Attack step size')
@@ -108,7 +108,6 @@ def test():
         print("Targets: ")
         print(label)
 
-
         attacked = attacker.perturb(inputs,targets,float('inf'),random_count=args.randomizations)
         # finally correct inverse tranform
         # needed to apply mean and std transforms separately
@@ -140,7 +139,7 @@ def test():
         succ_clean_pred  = predictionsclean.eq(targets).cpu().numpy()[0]
 
         formatted_fn = f"class_{label}_img_{class_count[targets.cpu().numpy()[0]]}"
-        save_path = f"./data/cifar_{args.model}/val/{label}/{formatted_fn}"
+        save_path = f"./data/cifar_{args.model}_ps{args.size_of_attack}/val/{label}/{formatted_fn}"
 
         
 
@@ -150,24 +149,24 @@ def test():
             clean_pred = classes[predictionsclean.cpu().numpy()[0]]
             attacked_pred = classes[predictionsattacked.cpu().numpy()[0]]
 
-            # Save successful attacks to test RF hypothesis
             
             if succ_attack:
 
                 if not os.path.exists(save_path):
                     os.makedirs(save_path)
-                save_image(clean_copy, os.path.join(save_path, f"SUCC_clean_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{clean_pred}.png"))
+                    save_image(clean_copy, os.path.join(save_path, f"SUCC_clean_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{clean_pred}.png"))
 
-                save_image(attacked_copy, os.path.join(save_path, f"SUCC_patch_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{attacked_pred}.png"))
+                    save_image(attacked_copy, os.path.join(save_path, f"SUCC_patch_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{attacked_pred}.png"))
+
                 print(f"Saved successful attack image")
-            else:
+            # else:
 
-                if not os.path.exists(save_path):
-                    os.makedirs(save_path)
-                if batch_idx % 2 == 0:
-                    save_image(clean_copy, os.path.join(save_path, f"UNSUCC_clean_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{clean_pred}.png"))
+            #     if not os.path.exists(save_path):
+            #         os.makedirs(save_path)
+            #     if batch_idx % 2 == 0:
+            #         save_image(clean_copy, os.path.join(save_path, f"UNSUCC_clean_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{clean_pred}.png"))
 
-                    save_image(attacked_copy, os.path.join(save_path, f"UNSUCC_patch_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{attacked_pred}.png"))
+            #         save_image(attacked_copy, os.path.join(save_path, f"UNSUCC_patch_class_{label}_img_{class_count[targets.cpu().numpy()[0]]}_pred_{attacked_pred}.png"))
             
             class_count[targets.cpu().numpy()[0]] += 1
 
