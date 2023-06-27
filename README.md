@@ -76,7 +76,7 @@ This project uses Python 3.8+. You need the following libraries installed.
 
 ### Installation
 1. Clone this repository
-git clone https://github.com/your_username_/PatchHybrid.git
+git clone https://github.com/your_username_/PatchHybrid.git](https://github.com/see-ann/PatchHybrid.git
 
 2. Install the requirements
 pip install -r requirements.txt
