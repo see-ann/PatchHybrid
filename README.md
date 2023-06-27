@@ -3,8 +3,6 @@
 
 By [Priya Naphade](https://github.com/pnaphade) and [Sean Wang](https://github.com/see-ann)
 
-![Banner](https://user-images.githubusercontent.com/placeholder/banner.png)
-
 ---
 
 ## Table of Contents
